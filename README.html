@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Aleatorio: Reproducción, Embarazo y Parto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        .question-container {
+            background-color: white;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border-left: 4px solid #6366f1; /* indigo-500 */
+            transition: border-color 0.3s, background-color 0.3s; /* Added transition */
+        }
+        .question-text {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #1f2937; /* gray-800 */
+        }
+        .options label {
+            display: block;
+            background-color: #f9fafb; /* gray-50 */
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid #e5e7eb; /* gray-200 */
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            position: relative; /* Needed for feedback pseudo-elements */
+        }
+        .options label:hover:not(.disabled) { /* Don't hover when disabled */
+            background-color: #e0e7ff; /* indigo-100 */
+            border-color: #a5b4fc; /* indigo-300 */
+        }
+         /* Estilo para opción seleccionada */
+        .options input[type="radio"]:checked + span {
+             font-weight: 600;
+             color: #4338ca; /* indigo-700 */
+        }
+        /* Estilos para feedback visual tras enviar */
+         .question-container.correct-answer {
+             border-left-color: #22c55e !important; /* green-500 */
+             background-color: #f0fdf4; /* green-50 */
+        }
+         .question-container.incorrect-answer {
+             border-left-color: #ef4444 !important; /* red-500 */
+             background-color: #fef2f2; /* red-50 */
+        }
+         /* Estilos para resaltar la opción correcta y la seleccionada incorrecta */
+         label.correct-label {
+             border: 1px solid #22c55e !important; /* green-500 */
+             background-color: #dcfce7 !important; /* green-100 */
+         }
+         label.correct-label::after {
+             content: ' ✔️ Correcta';
+             color: #16a34a; /* green-600 */
+             font-weight: bold;
+             margin-left: 10px;
+         }
+          label.selected-incorrect-label {
+             border: 1px solid #ef4444 !important; /* red-500 */
+             background-color: #fee2e2 !important; /* red-100 */
+          }
+          label.selected-incorrect-label::after {
+             content: ' ❌ Tu respuesta';
+             color: #dc2626; /* red-600 */
+             font-weight: bold;
+             margin-left: 10px;
+         }
+         label.disabled { /* Style for disabled labels */
+            cursor: not-allowed;
+            opacity: 0.8;
+         }
+
+
+        .options input[type="radio"] {
+            margin-right: 0.75rem;
+            accent-color: #4f46e5; /* indigo-600 */
+        }
+         .options input[type="radio"]:disabled {
+             accent-color: #9ca3af; /* gray-400 */
+         }
+
+        .action-button {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            font-weight: bold;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-right: 1rem; /* Espacio entre botones */
+        }
+        .action-button:hover:not(:disabled) { /* Prevent hover effect when disabled */
+            background-color: #4338ca; /* indigo-700 */
+        }
+         .action-button:disabled {
+             background-color: #a5b4fc; /* indigo-300 */
+             cursor: not-allowed;
+             opacity: 0.7;
+         }
+         .secondary-button {
+             background-color: #6b7280; /* gray-500 */
+         }
+         .secondary-button:hover:not(:disabled) {
+             background-color: #4b5563; /* gray-600 */
+         }
+        #results {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: #e0e7ff; /* indigo-100 */
+            border: 1px solid #a5b4fc; /* indigo-300 */
+            border-radius: 0.5rem;
+            text-align: center;
+            font-size: 1.25rem; /* text-xl */
+            font-weight: 600;
+            color: #3730a3; /* indigo-800 */
+            transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+        }
+        #results.high-score { background-color: #dcfce7; border-color: #86efac; color: #15803d; } /* green */
+        #results.medium-score { background-color: #fef3c7; border-color: #fde047; color: #a16207; } /* amber */
+        #results.low-score { background-color: #fee2e2; border-color: #fca5a5; color: #b91c1c; } /* red */
+        #results.incomplete { background-color: #ffedd5; border-color: #fdba74; color: #c2410c; } /* orange */
+
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-lg shadow-xl">
+        <h1 class="text-3xl font-bold text-center mb-6 text-indigo-800">Test Aleatorio de Repaso</h1>
+        <p class="text-center text-gray-600 mb-8">Se mostrarán 20 preguntas aleatorias de la base de datos.</p>
+
+        <form id="quiz-form">
+            <div id="quiz-container">
+                <p class="text-center text-gray-500">Cargando preguntas...</p>
+            </div>
+
+            <div class="flex justify-center mt-8 space-x-4">
+                 <button type="submit" id="submit-btn" class="action-button">Ver Resultados</button>
+                 <button type="button" id="new-quiz-btn" class="action-button secondary-button">Generar Nuevo Test</button>
+            </div>
+        </form>
+
+        <div id="results" class="hidden mt-8"></div> </div>
+
+    <p class="text-center text-xs text-gray-500 mt-10 mb-4">
+        Realizado por Nadia Alonso
+    </p>
+
+    <script>
+        const quizContainer = document.getElementById('quiz-container');
+        const quizForm = document.getElementById('quiz-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const resultsDiv = document.getElementById('results');
+        const newQuizBtn = document.getElementById('new-quiz-btn');
+
+        // --- BANCO DE PREGUNTAS ---
+        // (Ejemplo con ~40 preguntas, idealmente serían más)
+        const questionPool = [
+            // Masculino
+            { q: "¿Qué células producen la testosterona?", o: ["Células de Sertoli", "Espermatogonias", "Células de Leydig", "Espermátidas"], a: "C" },
+            { q: "¿Función principal del epidídimo?", o: ["Producir semen", "Almacenar y madurar espermatozoides", "Transportar orina", "Producir andrógenos"], a: "B" },
+            { q: "¿Qué glándula produce líquido rico en fructosa?", o: ["Próstata", "Glándulas de Cowper", "Vesículas seminales", "Testículos"], a: "C" },
+            { q: "¿Cómo se llama el proceso de formación de espermatozoides?", o: ["Espermiogénesis", "Ovogénesis", "Espermatogénesis", "Erección"], a: "C" },
+            { q: "¿Qué estructura rodea la uretra dentro del pene?", o: ["Cuerpo cavernoso", "Túnica albugínea", "Cuerpo esponjoso", "Prepucio"], a: "C" },
+            { q: "¿Qué significa HPB?", o: ["Hormona Protectora Benigna", "Hiperplasia Prostática Benigna", "Herpes Prostático Bovino", "Hidrocele Prostático Bilateral"], a: "B" },
+            { q: "La criptorquidia es...", o: ["Inflamación testicular", "Acumulación de líquido", "Estrechez del prepucio", "Testículos no descendidos"], a: "D" },
+
+            // Femenino
+            { q: "¿Dónde ocurre habitualmente la fecundación?", o: ["Ovario", "Útero", "Ampolla de la trompa de Falopio", "Vagina"], a: "C" },
+            { q: "¿Qué hormona causa el pico que desencadena la ovulación?", o: ["FSH", "Estrógenos", "Progesterona", "LH"], a: "D" },
+            { q: "¿Capa interna del útero que se descama en la menstruación?", o: ["Miometrio", "Perimetrio", "Endometrio funcional", "Endometrio basal"], a: "C" },
+            { q: "La estructura glandular formada tras la ovulación se llama:", o: ["Folículo de Graaf", "Cuerpo blanco", "Cuerpo lúteo", "Antro folicular"], a: "C" },
+            { q: "¿Qué hormona predomina en la fase lútea?", o: ["FSH", "LH", "Estrógenos", "Progesterona"], a: "D" },
+            { q: "La endometriosis es:", o: ["Infección uterina", "Tumor benigno del miometrio", "Tejido endometrial fuera del útero", "Ausencia de menstruación"], a: "C" },
+            { q: "Las fimbrias se encuentran en:", o: ["El ovario", "El útero", "El infundíbulo de la trompa", "La vagina"], a: "C" },
+            { q: "¿Qué es la menopausia?", o: ["Primera menstruación", "Dolor menstrual", "Cese permanente de la menstruación", "Ciclo menstrual irregular"], a: "C" },
+
+            // Embarazo
+            { q: "¿Primera célula diploide tras la fecundación?", o: ["Embrión", "Feto", "Blástula", "Cigoto"], a: "D" },
+            { q: "¿En qué trimestre ocurre la diferenciación sexual?", o: ["Primer trimestre", "Segundo trimestre", "Tercer trimestre", "Post-parto"], a: "A" },
+            { q: "¿Función principal de la VENA umbilical?", o: ["Llevar desechos feto->placenta", "Llevar O2/nutrientes placenta->feto", "Producir líquido amniótico", "Formar saco amniótico"], a: "B" },
+            { q: "¿Origen de los gemelos idénticos (monocigóticos)?", o: ["2 óvulos + 2 espermatozoides", "1 óvulo + 2 espermatozoides", "División temprana de 1 cigoto", "Fusión de 2 cigotos"], a: "C" },
+            { q: "La implantación de la placenta en la parte baja del útero es:", o: ["Embarazo ectópico", "Desprendimiento prematuro", "Preeclampsia", "Placenta previa"], a: "D" },
+            { q: "¿Qué hormona detectan los tests de embarazo?", o: ["Progesterona", "Estrógenos", "LH", "hCG"], a: "D" },
+            { q: "La estructura que envuelve al feto y contiene líquido es:", o: ["Placenta", "Cordón umbilical", "Saco amniótico", "Cuerpo lúteo"], a: "C" },
+            { q: "¿Qué es la preeclampsia?", o: ["Vómitos excesivos", "Convulsiones", "Hipertensión + proteinuria", "Implantación fuera del útero"], a: "C" },
+            { q: "¿Cuántas arterias tiene normalmente el cordón umbilical?", o: ["Ninguna", "Una", "Dos", "Tres"], a: "C" },
+            { q: "La etapa desde la 9ª semana hasta el parto se denomina:", o: ["Cigoto", "Mórula", "Embrión", "Feto"], a: "D" },
+
+            // Parto
+            { q: "¿Dilatación completa del cuello uterino?", o: ["5 cm", "8 cm", "10 cm", "12 cm"], a: "C" },
+            { q: "¿Fase de expulsión de la placenta?", o: ["Dilatación", "Expulsión", "Alumbramiento", "Puerperio"], a: "C" },
+            { q: "¿Signo que NO indica necesariamente parto inminente?", o: ["Contracciones regulares c/5 min", "Rotura de bolsa", "Eliminación tapón mucoso", "Sensación de pujo"], a: "C" },
+            { q: "¿Cómo se llama la rotura artificial de membranas?", o: ["Monitorización interna", "Amniorrexis", "Oxitocina", "Epidural"], a: "B" },
+            { q: "El parto normal, sin complicaciones, se denomina:", o: ["Distócico", "Inducido", "Eutócico", "Podálico"], a: "C" },
+            { q: "La contracción uterina post-alumbramiento se llama:", o: ["Pujo", "Globo de seguridad", "Entuerto", "Braxton-Hicks"], a: "B" },
+            { q: "La analgesia más común en el parto es:", o: ["General", "Local", "Raquídea", "Epidural"], a: "D" },
+
+            // ETS / Citogenética
+            { q: "¿Virus principal causante de cáncer de cérvix?", o: ["VIH", "Herpes II", "VPH", "Hepatitis B"], a: "C" },
+            { q: "¿ETS causada por una bacteria?", o: ["Herpes genital", "Gonorrea", "Candidiasis", "Tricomoniasis"], a: "B" },
+            { q: "El Síndrome de Down es un ejemplo de:", o: ["Monosomía", "Deleción", "Trisomía", "Translocación"], a: "C" },
+            { q: "¿Anomalía estructural con pérdida de un segmento cromosómico?", o: ["Inversión", "Translocación", "Duplicación", "Deleción"], a: "D" },
+            { q: "El Síndrome de Turner (X0) es una:", o: ["Monosomía", "Trisomía", "Deleción", "Inversión"], a: "A" },
+            { q: "¿Qué ETS causa el SIDA?", o: ["VPH", "VIH", "Treponema pallidum", "Neisseria gonorrhoeae"], a: "B" },
+            { q: "La candidiasis es causada por un:", o: ["Virus", "Bacteria", "Parásito", "Hongo"], a: "D" }
+        ];
+
+        let currentQuestionsData = []; // Almacenará los datos {q, o, a} de las 20 preguntas actuales
+        let currentCorrectAnswers = {}; // Almacenará las respuestas correctas para las preguntas actuales {q0: 'A', q1: 'C', ...}
+
+        // --- Funciones ---
+
+        // Baraja un array (Algoritmo Fisher-Yates)
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // Intercambio
+            }
+        }
+
+        // Carga 20 preguntas aleatorias
+        function loadQuiz() {
+            // 1. Resetear estado
+            quizContainer.innerHTML = ''; // Limpiar preguntas anteriores
+            resultsDiv.innerHTML = '';
+            resultsDiv.className = 'hidden mt-8'; // Resetear clases de resultado y ocultar
+            submitBtn.disabled = false; // Habilitar botón de envío
+            currentQuestionsData = [];
+            currentCorrectAnswers = {};
+
+            // 2. Seleccionar 20 preguntas aleatorias
+            const shuffledPool = [...questionPool];
+            shuffleArray(shuffledPool);
+            currentQuestionsData = shuffledPool.slice(0, 20);
+
+            // 3. Generar HTML para las preguntas
+            currentQuestionsData.forEach((qData, index) => {
+                const questionName = `q${index}`;
+                currentCorrectAnswers[questionName] = qData.a; // Guardar respuesta correcta
+
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'question-container';
+                questionDiv.id = `qc-${index}`; // ID para referenciar el contenedor
+
+                const questionP = document.createElement('p');
+                questionP.className = 'question-text';
+                questionP.textContent = `${index + 1}. ${qData.q}`;
+                questionDiv.appendChild(questionP);
+
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'options';
+
+                qData.o.forEach((optionText, optionIndex) => {
+                    const optionValue = String.fromCharCode(65 + optionIndex); // A, B, C, D
+                    const label = document.createElement('label');
+                    label.htmlFor = `${questionName}_${optionValue}`; // Asociar label con input
+
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = questionName;
+                    radio.value = optionValue;
+                    radio.id = `${questionName}_${optionValue}`; // ID único para input
+
+                    const span = document.createElement('span');
+                    span.textContent = ` ${optionValue}) ${optionText}`;
+
+                    label.appendChild(radio);
+                    label.appendChild(span);
+                    optionsDiv.appendChild(label);
+                });
+
+                questionDiv.appendChild(optionsDiv);
+                quizContainer.appendChild(questionDiv);
+            });
+        }
+
+        // Maneja el envío del formulario
+        function handleSubmit(event) {
+            event.preventDefault(); // Prevenir envío real
+            let score = 0;
+            let allAnswered = true;
+
+            // Resetear feedback visual previo en contenedores y labels
+             const allContainers = quizContainer.querySelectorAll('.question-container');
+             allContainers.forEach(container => {
+                 container.classList.remove('correct-answer', 'incorrect-answer');
+                 container.style.borderColor = '#6366f1'; // Reset border color a indigo-500
+                 container.querySelectorAll('label').forEach(label => {
+                     label.classList.remove('correct-label', 'selected-incorrect-label');
+                 });
+             });
+
+            // Comprobar respuestas y aplicar feedback
+            currentQuestionsData.forEach((qData, index) => {
+                const questionName = `q${index}`;
+                const selectedAnswerInput = quizForm.querySelector(`input[name="${questionName}"]:checked`);
+                const questionContainer = document.getElementById(`qc-${index}`); // Usar ID para encontrar contenedor
+                // Comprobación extra por si questionContainer no se encuentra (aunque no debería pasar)
+                if (!questionContainer) {
+                    console.error(`Container qc-${index} not found`);
+                    return; // Saltar esta iteración si hay error
+                }
+                const labels = questionContainer.querySelectorAll('label'); // Seleccionar labels dentro del contenedor actual
+
+                if (selectedAnswerInput) {
+                    const userAnswer = selectedAnswerInput.value;
+                    const correctAnswer = currentCorrectAnswers[questionName];
+                    const selectedLabel = selectedAnswerInput.closest('label');
+
+                    if (userAnswer === correctAnswer) {
+                        score++;
+                        questionContainer.classList.add('correct-answer');
+                        if(selectedLabel) selectedLabel.classList.add('correct-label'); // Marcar la seleccionada como correcta
+                    } else {
+                        questionContainer.classList.add('incorrect-answer');
+                        if(selectedLabel) selectedLabel.classList.add('selected-incorrect-label'); // Marcar la seleccionada como incorrecta
+                        // Resaltar también la correcta
+                        labels.forEach(label => {
+                            const input = label.querySelector('input');
+                            if (input && input.value === correctAnswer) { // Check if input exists
+                                label.classList.add('correct-label');
+                            }
+                        });
+                    }
+                } else {
+                    allAnswered = false;
+                     // Marcar preguntas no respondidas
+                     questionContainer.style.borderColor = '#f97316'; // Orange-500 border
+                }
+            });
+
+            // Mostrar resultado final
+            resultsDiv.classList.remove('hidden'); // Hace visible el div de resultados
+            const scorePercentage = currentQuestionsData.length > 0 ? (score / currentQuestionsData.length) * 100 : 0; // Calcula el porcentaje
+
+            if (!allAnswered) {
+                 // Mensaje si faltan preguntas
+                 resultsDiv.innerHTML = `Por favor, responde todas las preguntas (marcadas en naranja).`;
+                 resultsDiv.className = 'results incomplete'; // Aplica estilo para "incompleto"
+            } else {
+                // Mensaje con la puntuación si se respondieron todas
+                resultsDiv.innerHTML = `Tu puntuación: ${score} de ${currentQuestionsData.length} (${scorePercentage.toFixed(0)}%)`;
+                // Aplica estilo según la nota obtenida
+                 if (scorePercentage >= 80) {
+                     resultsDiv.className = 'results high-score'; // Nota alta
+                } else if (scorePercentage >= 50) {
+                     resultsDiv.className = 'results medium-score'; // Nota media
+                } else {
+                     resultsDiv.className = 'results low-score'; // Nota baja
+                }
+                // Deshabilitar inputs y botón tras enviar si todo está respondido
+                submitBtn.disabled = true;
+                const radioInputs = quizForm.querySelectorAll('input[type="radio"]');
+                radioInputs.forEach(input => {
+                    input.disabled = true;
+                    // Añade una clase a la etiqueta para poder darle estilo si está deshabilitada
+                    const label = input.closest('label');
+                    if (label) label.classList.add('disabled');
+                });
+                 // Hacer scroll automático para que se vean los resultados
+                resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // --- Event Listeners ---
+        quizForm.addEventListener('submit', handleSubmit);
+        newQuizBtn.addEventListener('click', loadQuiz);
+
+        // --- Carga inicial ---
+        loadQuiz();
+
+    </script>
+
+</body>
+</html>
